@@ -7,6 +7,12 @@
 </head>
 <body>
     <nav>
+        <% if (session && session.accountId) { %>
+            <span><%= session.username %></span>
+            <a href="/logout"><%= t('logout') %></a> |
+        <% } else { %>
+            <a href="/login"><%= t('login') %></a> |
+        <% } %>
         <a href="/lang/en">English</a> |
         <a href="/lang/ro">Română</a> |
         <a href="/admin"><%= t('admin') %></a>
@@ -15,14 +21,15 @@
     <% if (items.length === 0) { %>
     <p><%= t('no_items') %></p>
     <% } %>
-    <ul>
+    <div class="item-grid">
         <% items.forEach(function(item) { %>
-        <li>
-            <h3><%= item.name %> - $<%= item.price %></h3>
-            <a href="/buy/<%= item.id %>"><%= t('buy') %></a>
-        </li>
+        <div class="item">
+            <h3><%= item.name %></h3>
+            <p>$<%= item.price %></p>
+            <a class="btn" href="/buy/<%= item.id %>"><%= t('buy') %></a>
+        </div>
         <% }) %>
-    </ul>
+    </div>
     <% if (query.success) { %>
     <p><%= t('payment_success') %></p>
     <% } else if (query.canceled) { %>

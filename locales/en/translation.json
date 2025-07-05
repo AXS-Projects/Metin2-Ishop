@@ -17,5 +17,8 @@
   "delete": "Delete",
   "item_exists": "Item ID already exists",
   "payment_success": "Payment completed!",
-  "payment_canceled": "Payment canceled"
+  "payment_canceled": "Payment canceled",
+  "username": "Username",
+  "logout": "Logout",
+  "invalid_credentials": "Invalid username or password"
 }

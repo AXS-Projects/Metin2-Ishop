@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const sqlite3 = require('sqlite3');
 const { promisify } = require('util');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
+const mysql = require('mysql2/promise');
 
 const app = express();
 
@@ -34,6 +35,16 @@ app.use(session({
   saveUninitialized: false,
   cookie: { secure: process.env.NODE_ENV === 'production', sameSite: 'lax' }
 }));
+
+const mysqlPool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
+  database: process.env.DB_NAME || undefined,
+  waitForConnections: true,
+  connectionLimit: 10
+});
 
 const dbFile = path.join(__dirname, 'data/items.db');
 const db = new sqlite3.Database(dbFile);
@@ -73,9 +84,25 @@ async function deleteItem(id) {
   return dbRun('DELETE FROM items WHERE id=?', [id]);
 }
 
+async function authenticateUser(username, password) {
+  const [rows] = await mysqlPool.query('SELECT id, password FROM account.account WHERE login=?', [username]);
+  if (!rows.length) return null;
+  const crypto = require('crypto');
+  const hash = crypto.createHash('md5').update(password).digest('hex');
+  if (rows[0].password.toLowerCase() !== hash.toLowerCase()) return null;
+  return { id: rows[0].id, username };
+}
+
+async function addItemToAccount(accountId, itemVnum) {
+  const [chars] = await mysqlPool.query('SELECT id FROM player.player WHERE account_id=? LIMIT 1', [accountId]);
+  if (!chars.length) return;
+  const charId = chars[0].id;
+  await mysqlPool.query('INSERT INTO player.item(owner_id, window, pos, count, vnum) VALUES (?, "MALL", 0, 1, ?)', [charId, itemVnum]);
+}
+
 app.get('/', async (req, res) => {
   const items = await loadItems();
-  res.render('index', { items, t: req.t, query: req.query });
+  res.render('index', { items, t: req.t, query: req.query, session: req.session });
 });
 
 app.get('/lang/:lng', (req, res) => {
@@ -84,6 +111,7 @@ app.get('/lang/:lng', (req, res) => {
 });
 
 app.get('/buy/:id', async (req, res) => {
+  if (!req.session.accountId) return res.redirect('/login');
   const item = await getItem(req.params.id);
   if (!item) return res.redirect('/');
   try {
@@ -91,13 +119,41 @@ app.get('/buy/:id', async (req, res) => {
       payment_method_types: ['card'],
       mode: 'payment',
       line_items: [{ price_data: { currency: 'usd', product_data: { name: item.name }, unit_amount: item.price * 100 }, quantity: 1 }],
-      success_url: req.protocol + '://' + req.get('host') + '/?success=true',
+      success_url: req.protocol + '://' + req.get('host') + '/success/' + item.id,
       cancel_url: req.protocol + '://' + req.get('host') + '/?canceled=true'
     });
     res.redirect(session.url);
   } catch (err) {
     res.status(500).send('Payment error');
   }
+});
+
+app.get('/success/:id', async (req, res) => {
+  if (!req.session.accountId) return res.redirect('/login');
+  const item = await getItem(req.params.id);
+  if (item) {
+    try { await addItemToAccount(req.session.accountId, item.id); } catch (e) {}
+  }
+  res.redirect('/?success=true');
+});
+
+app.get('/login', (req, res) => {
+  res.render('user_login', { t: req.t });
+});
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await authenticateUser(username, password);
+  if (!user) {
+    return res.render('user_login', { error: req.t('invalid_credentials'), t: req.t });
+  }
+  req.session.accountId = user.id;
+  req.session.username = user.username;
+  res.redirect('/');
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/'));
 });
 
 // Admin routes

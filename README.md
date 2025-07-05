@@ -14,6 +14,11 @@ Set the following environment variables:
 - `STRIPE_SECRET_KEY` - Stripe API key used for payments
 - `SESSION_SECRET` - secret used to sign the session cookie
 - `ADMIN_PASSWORD_HASH` - bcrypt hash for the admin password
+- `DB_HOST` - MySQL server host
+- `DB_USER` - MySQL user
+- `DB_PASSWORD` - MySQL password
+- `DB_PORT` - MySQL port (default 3306)
+- `DB_NAME` - Default database (optional)
 
 If `ADMIN_PASSWORD_HASH` is not provided, the default password is `admin`.
 

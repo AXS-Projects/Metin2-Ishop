@@ -21,6 +21,7 @@
     "i18next-express-middleware": "^1.9.1",
     "i18next-fs-backend": "^2.6.0",
     "sqlite3": "^5.1.7",
-    "stripe": "^14.6.0"
+    "stripe": "^14.6.0",
+    "mysql2": "^3.9.3"
   }
 }
