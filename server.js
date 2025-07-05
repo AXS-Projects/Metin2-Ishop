@@ -5,6 +5,9 @@ const Backend = require('i18next-fs-backend');
 const middleware = require('i18next-express-middleware');
 const fs = require('fs');
 const path = require('path');
+const bcrypt = require('bcryptjs');
+const sqlite3 = require('sqlite3');
+const { promisify } = require('util');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
 
 const app = express();
@@ -25,21 +28,53 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(middleware.handle(i18next));
-app.use(session({ secret: 'ishop-secret', resave: false, saveUninitialized: false }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'ishop-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production', sameSite: 'lax' }
+}));
 
-const itemsFile = path.join(__dirname, 'data/items.json');
-function loadItems() {
-  if (!fs.existsSync(itemsFile)) {
-    fs.writeFileSync(itemsFile, JSON.stringify([]));
+const dbFile = path.join(__dirname, 'data/items.db');
+const db = new sqlite3.Database(dbFile);
+db.run('CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, name TEXT, price REAL)');
+db.get('SELECT COUNT(*) as cnt FROM items', (err, row) => {
+  if (!err && row && row.cnt === 0) {
+    const jsonFile = path.join(__dirname, 'data/items.json');
+    if (fs.existsSync(jsonFile)) {
+      const initial = JSON.parse(fs.readFileSync(jsonFile));
+      initial.forEach(it => db.run('INSERT INTO items(id,name,price) VALUES(?,?,?)', [it.id, it.name, it.price]));
+    }
   }
-  return JSON.parse(fs.readFileSync(itemsFile));
+});
+const dbAll = promisify(db.all.bind(db));
+function dbRun(sql, params) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) reject(err); else resolve(this);
+    });
+  });
 }
-function saveItems(items) {
-  fs.writeFileSync(itemsFile, JSON.stringify(items, null, 2));
+const dbGet = promisify(db.get.bind(db));
+
+async function loadItems() {
+  return dbAll('SELECT id, name, price FROM items');
+}
+async function getItem(id) {
+  return dbGet('SELECT id, name, price FROM items WHERE id = ?', [id]);
+}
+async function addItem(item) {
+  return dbRun('INSERT INTO items(id, name, price) VALUES (?, ?, ?)', [item.id, item.name, item.price]);
+}
+async function updateItem(item) {
+  return dbRun('UPDATE items SET name=?, price=? WHERE id=?', [item.name, item.price, item.id]);
+}
+async function deleteItem(id) {
+  return dbRun('DELETE FROM items WHERE id=?', [id]);
 }
 
-app.get('/', (req, res) => {
-  const items = loadItems();
+app.get('/', async (req, res) => {
+  const items = await loadItems();
   res.render('index', { items, t: req.t, query: req.query });
 });
 
@@ -49,8 +84,7 @@ app.get('/lang/:lng', (req, res) => {
 });
 
 app.get('/buy/:id', async (req, res) => {
-  const items = loadItems();
-  const item = items.find(i => i.id === req.params.id);
+  const item = await getItem(req.params.id);
   if (!item) return res.redirect('/');
   try {
     const session = await stripe.checkout.sessions.create({
@@ -67,17 +101,18 @@ app.get('/buy/:id', async (req, res) => {
 });
 
 // Admin routes
-app.get('/admin', (req, res) => {
+app.get('/admin', async (req, res) => {
   if (!req.session.authenticated) {
     return res.render('login', { t: req.t });
   }
-  const items = loadItems();
+  const items = await loadItems();
   res.render('admin', { items, t: req.t });
 });
 
-app.post('/admin/login', (req, res) => {
+app.post('/admin/login', async (req, res) => {
   const { password } = req.body;
-  if (password === (process.env.ADMIN_PASSWORD || 'admin')) {
+  const hash = process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync('admin', 10);
+  if (await bcrypt.compare(password, hash)) {
     req.session.authenticated = true;
     res.redirect('/admin');
   } else {
@@ -85,12 +120,28 @@ app.post('/admin/login', (req, res) => {
   }
 });
 
-app.post('/admin/add', (req, res) => {
+app.post('/admin/add', async (req, res) => {
   if (!req.session.authenticated) return res.redirect('/admin');
   const { id, name, price } = req.body;
-  const items = loadItems();
-  items.push({ id, name, price: parseFloat(price) });
-  saveItems(items);
+  const existing = await getItem(id);
+  if (existing) {
+    const items = await loadItems();
+    return res.render('admin', { items, error: req.t('item_exists'), t: req.t });
+  }
+  await addItem({ id, name, price: parseFloat(price) });
+  res.redirect('/admin');
+});
+
+app.post('/admin/edit/:id', async (req, res) => {
+  if (!req.session.authenticated) return res.redirect('/admin');
+  const { name, price } = req.body;
+  await updateItem({ id: req.params.id, name, price: parseFloat(price) });
+  res.redirect('/admin');
+});
+
+app.post('/admin/delete/:id', async (req, res) => {
+  if (!req.session.authenticated) return res.redirect('/admin');
+  await deleteItem(req.params.id);
   res.redirect('/admin');
 });
 

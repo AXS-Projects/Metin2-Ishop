@@ -13,10 +13,22 @@
         <input type="number" step="0.01" name="price" placeholder="<%= t('price') %>" required>
         <button type="submit"><%= t('add_item') %></button>
     </form>
+    <% if (error) { %>
+    <p class="error"><%= error %></p>
+    <% } %>
     <h2><%= t('current_items') %></h2>
     <ul>
         <% items.forEach(function(item){ %>
-        <li><%= item.id %> - <%= item.name %> ($<%= item.price %>)</li>
+        <li>
+            <form class="inline-form" method="post" action="/admin/edit/<%= item.id %>">
+                <input type="text" name="name" value="<%= item.name %>">
+                <input type="number" step="0.01" name="price" value="<%= item.price %>">
+                <button type="submit"><%= t('save') %></button>
+            </form>
+            <form class="inline-form" method="post" action="/admin/delete/<%= item.id %>">
+                <button type="submit"><%= t('delete') %></button>
+            </form>
+        </li>
         <% }) %>
     </ul>
     <a href="/">&larr; <%= t('back') %></a>

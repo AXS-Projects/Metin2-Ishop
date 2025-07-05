@@ -13,6 +13,9 @@
   "price": "Pret",
   "add_item": "Adauga item",
   "current_items": "Iteme existente",
+  "save": "Salvează",
+  "delete": "Șterge",
+  "item_exists": "ID-ul itemului există deja",
   "payment_success": "Plata efectuata!",
   "payment_canceled": "Plata anulata"
 }
