@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="<%= t('lang_code') %>">
+<head>
+    <meta charset="UTF-8">
+    <title><%= t('admin_login') %></title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <h1><%= t('admin_login') %></h1>
+    <% if (error) { %>
+    <p class="error"><%= error %></p>
+    <% } %>
+    <form method="post" action="/admin/login">
+        <input type="password" name="password" placeholder="<%= t('password') %>">
+        <button type="submit"><%= t('login') %></button>
+    </form>
+    <a href="/">&larr; <%= t('back') %></a>
+</body>
+</html>

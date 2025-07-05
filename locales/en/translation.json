@@ -1,0 +1,18 @@
+{
+  "lang_code": "en",
+  "welcome": "Welcome to the Itemshop",
+  "no_items": "No items available",
+  "buy": "Buy",
+  "admin": "Admin",
+  "admin_login": "Admin Login",
+  "invalid_password": "Invalid password",
+  "password": "Password",
+  "login": "Login",
+  "back": "Back",
+  "item_name": "Item name",
+  "price": "Price",
+  "add_item": "Add item",
+  "current_items": "Current items",
+  "payment_success": "Payment completed!",
+  "payment_canceled": "Payment canceled"
+}
