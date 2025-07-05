@@ -17,5 +17,8 @@
   "delete": "Șterge",
   "item_exists": "ID-ul itemului există deja",
   "payment_success": "Plata efectuata!",
-  "payment_canceled": "Plata anulata"
+  "payment_canceled": "Plata anulata",
+  "username": "Utilizator",
+  "logout": "Deconectare",
+  "invalid_credentials": "Utilizator sau parola incorecte"
 }
