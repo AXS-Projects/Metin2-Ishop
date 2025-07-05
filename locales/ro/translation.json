@@ -1,0 +1,18 @@
+{
+  "lang_code": "ro",
+  "welcome": "Bine ai venit la Itemshop",
+  "no_items": "Nu exista iteme",
+  "buy": "Cumpara",
+  "admin": "Admin",
+  "admin_login": "Autentificare Admin",
+  "invalid_password": "Parola invalida",
+  "password": "Parola",
+  "login": "Conecteaza-te",
+  "back": "Inapoi",
+  "item_name": "Nume item",
+  "price": "Pret",
+  "add_item": "Adauga item",
+  "current_items": "Iteme existente",
+  "payment_success": "Plata efectuata!",
+  "payment_canceled": "Plata anulata"
+}

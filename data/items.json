@@ -1,0 +1,12 @@
+[
+  {
+    "id": "item1",
+    "name": "Sword of Power",
+    "price": 9.99
+  },
+  {
+    "id": "item2",
+    "name": "Shield of Valor",
+    "price": 7.5
+  }
+]

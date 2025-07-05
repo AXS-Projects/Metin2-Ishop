@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="<%= t('lang_code') %>">
+<head>
+    <meta charset="UTF-8">
+    <title>Metin2 Ishop</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav>
+        <a href="/lang/en">English</a> |
+        <a href="/lang/ro">Română</a> |
+        <a href="/admin"><%= t('admin') %></a>
+    </nav>
+    <h1><%= t('welcome') %></h1>
+    <% if (items.length === 0) { %>
+    <p><%= t('no_items') %></p>
+    <% } %>
+    <ul>
+        <% items.forEach(function(item) { %>
+        <li>
+            <h3><%= item.name %> - $<%= item.price %></h3>
+            <a href="/buy/<%= item.id %>"><%= t('buy') %></a>
+        </li>
+        <% }) %>
+    </ul>
+    <% if (query.success) { %>
+    <p><%= t('payment_success') %></p>
+    <% } else if (query.canceled) { %>
+    <p><%= t('payment_canceled') %></p>
+    <% } %>
+</body>
+</html>
